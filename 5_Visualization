@@ -1,0 +1,107 @@
+---
+title: "CSS Project"
+output:
+  pdf_document:
+    toc: yes
+---
+
+```{r Import Packages, echo = FALSE, warning = FALSE, message = FALSE, results = "hide"}
+rm(list=ls())
+
+```
+
+```{r WD, include = FALSE}
+setwd("/Users/CJBex/Desktop/CJBex/")
+df <- 
+  read.csv("for_alisa_agg.csv", sep = "\t", header = FALSE)
+
+str(df)
+
+#names(d1) <- c("amount_cents","account_id","transaction_date","retailer",     "amount_cents","transaction_type","experiment","experiment_date","transaction_month")
+
+#df$V6 = factor(df$V6)
+#df$V6 = as.numeric(df$V6)
+
+library(tidyverse)
+d = df %>% 
+  group_by(V4,V6) %>% 
+  summarise(mean_amount = mean(V9)) %>%
+ # select(V4,V6,V9) %>% 
+  filter(V6 <= 30)
+
+str(d)
+
+d$V4 = ifelse(d$V4 == "5A", "Treated","Control")
+
+library(scales)
+library(ggplot2)
+ggplot(d, aes(x = V6, y = mean_amount, color = V4)) +
+            ggtitle('Deposit Spending Curve By Condition') +
+            geom_point() +
+            geom_smooth(method = loess, se = F) + theme_bw() + ylab("Percent of Deposit") + xlab("Days Since Deposit") + theme(plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + theme(text = element_text(family="Times New Roman"))  + scale_y_continuous(labels = percent) + labs(color="")
+
+d2 = df %>% 
+  group_by(V4,V6,V11) %>% 
+  summarise(mean_amount = mean(V9)) %>%
+ # select(V4,V6,V9) %>% 
+  filter(V6 <= 30)
+
+d2$V4 = ifelse(d2$V4 == "5A", "Treated","Control")
+
+d2$month = paste("Month ",d2$V11)
+
+ggplot(d2, aes(x = V6, y = mean_amount, color = V4)) +
+            ggtitle('Deposit Spending Curve By Condition And Month') +
+            geom_point() +
+            geom_smooth(method = loess, se = F) + facet_wrap(~month) + theme_bw() + ylab("Percent of Deposit") + xlab("Days Since Deposit") + theme(plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + theme(text = element_text(family="Times New Roman"))  + scale_y_continuous(labels = percent) + labs(color="")
+
+
+
+#dis = distinct(df,V2)
+
+
+#str(d)
+
+
+setwd("/Users/CJBex/Desktop/CJBex/")
+df <- 
+  read.csv("testsample.csv", sep = "\t", header = FALSE)
+
+library(tidyverse)
+library(splitstackshape)
+df$V5 <- as.Date(df$V5)
+df$V5 <- format(df$V5, "%Y-%m-%d")
+
+df <- df %>% 
+  mutate(key = paste(V1, ".", V5, ".", V8, ".", V9))
+
+df2 <- df %>% 
+  group_by(key) %>% 
+  summarize(sum_amt_cents = sum(V7))
+
+df3 <- df2
+df3 <- cSplit(df3, "key", ".")
+
+library(data.table)
+df[, lag.value:=c(NA, value[-.N]), by=key_1]
+df3$key_1 = factor(df3$key_1)
+str(df3)
+
+df3_deposits <- 
+    df3 %>%
+    filter(as.integer(sum_amt_cents) > 0) %>%
+    group_by(key_1) %>%
+    arrange(key_1,desc(key_2)) %>%
+    mutate(lag.value = dplyr::lag(key_2, n = 1, default = NA)) %>%
+    arrange(key_1,key_2)
+
+df3_deposits$date_1 <- as.Date(df3_deposits$key_2)
+df3_deposits$date_lag <- as.Date(df3_deposits$lag.value)
+df3_deposits$days = df3_deposits$date_lag - df3_deposits$date_1
+str(df3_deposits)
+
+library(zoo)
+
+df3_deposits$days = na.locf(df3_deposits$days)
+
+```
