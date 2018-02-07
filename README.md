@@ -1,1 +1,2 @@
-# Map_Reduce
+# Map_Reduce Analysis
+Evidence from a randomized controlled trial shows that providing Supplemental Nutrition Assistance Program (SNAP) recipients with a weekly budget (vs. no weekly budget) does not alter their spending patterns.  There were no differences in the rate of consumption throughout the month, number of transactions, size of transactions, and number of unplanned purchases.  However, we do find supporting evidence that providing SNAP recipients with their current SNAP balance slows down their rate of consumption.
