@@ -1,0 +1,74 @@
+import sys
+from datetime import datetime
+
+#################################### PARSING TIMES #############################
+def parse_times(date_variable):
+	try:
+		return datetime.strptime(date_variable, '%Y-%m-%d %H:%M:%S')
+	except ValueError:
+		return datetime.strptime(date_variable, '%Y-%m-%d %H:%M:%S.%f')
+
+########################### SORT BY DATE ####################################
+def sort_by_date(all_data_for_account):
+	sorted_data = []
+	sorted_data = sorted(all_data_for_account, key = lambda transaction: transaction['transaction_date'], reverse = True)
+	return sorted_data
+
+######################## GET RID OF PARTICIPANTS WHO HAVE DATA IN BOTH CONDITIONS ##################
+def get_rid_of_duplicates(sorted_data):
+	contains_5A = False
+	contains_5B = False
+	for transaction in sorted_data:
+		if transaction['experiment'] == "5A":
+			contains_5A = True
+		if transaction['experiment'] == "5B":
+			contains_5B = True
+
+	if (contains_5A == False or contains_5B == False):
+		return sorted_data
+
+###################### WHEN MULTIPLE DEPOSITS COME IN ON SAME DAY, COLLAPSE THEM TOGETHER ####################
+#def collapse_same_day_deposits(sorted_data):
+#	current_deposit_date = "-"
+	deposit_amount = []
+#	for transaction in sorted_data:
+#		transaction_date_reformat = transaction['transaction_date'].strftime('%Y-%m-%d')
+#		if transaction['transaction_type'] == "FOOD|Benefit Deposit":
+			
+###################### PRINT IT ALL OUT ##################################
+
+def print_it_all(clean_data):
+	if clean_data is not None:
+		for transaction in clean_data:
+			print("\t".join([transaction['account_id'], transaction['download_date'], transaction['nextdeposit_date'], transaction['transaction_id'], transaction['transaction_date'].strftime('%Y-%m-%d %H:%M:%S'), transaction['retailer'], str(transaction['amount_cents']), transaction['transaction_type'], transaction['experiment'], transaction['experiment_date'], transaction['transaction_month']]))
+
+##################################READ IN DATA, BUT DO NOT DO ANYTHING WITH BENEFITS <= 1000 ##########################
+cur_account_id = "-"
+all_data_for_account = []
+
+for line in sys.stdin:
+	line = line.strip()
+	split = line.split(',')
+	if split[0] == "account_id":
+		continue
+	if len(split) == 14:
+		[account_id, download_date, state, last_balance, last_balance_check, nextdeposit_date, transaction_id, transaction_date, retailer, amount_cents, transaction_type, experiment, experiment_date, transaction_month] = line.split(',')
+		transaction_type = transaction_type.strip()
+		transaction = {'account_id': account_id, 'download_date': download_date, 'state': state, 'last_balance': last_balance, 'last_balance_check': last_balance_check, 'nextdeposit_date': nextdeposit_date, 'transaction_id': transaction_id, 'transaction_date': parse_times(transaction_date), 'retailer': retailer, 'amount_cents': int(amount_cents), 'transaction_type': transaction_type, 'experiment': experiment, 'experiment_date': experiment_date, 'transaction_month': transaction_month}
+		if cur_account_id != account_id:
+			sorted_data = sort_by_date(all_data_for_account)
+			clean_data = get_rid_of_duplicates(sorted_data)
+			print_it_all(clean_data)
+			all_data_for_account = []
+#			all_data_for_account.append(transaction)
+			if transaction_type != "FOOD|Benefit Deposit":
+				all_data_for_account.append(transaction)
+			elif (transaction_type == "FOOD|Benefit Deposit" and int(amount_cents) > 1000):
+				all_data_for_account.append(transaction)
+			cur_account_id = account_id
+		else:
+#			all_data_for_account.append(transaction)
+			if transaction_type != "FOOD|Benefit Deposit":
+				all_data_for_account.append(transaction)
+			elif (transaction_type == "FOOD|Benefit Deposit" and int(amount_cents) > 1000):
+				all_data_for_account.append(transaction)
