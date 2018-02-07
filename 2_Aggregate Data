@@ -1,0 +1,62 @@
+df <- 
+  read.csv("testsample.csv", sep = "\t", header = FALSE)
+
+library(tidyverse)
+library(splitstackshape)
+library(DataCombine)
+library(data.table)
+library(zoo)
+
+df$V5 <- as.Date(df$V5)
+df$V5 <- format(df$V5, "%Y-%m-%d")
+ 
+df <- df %>% 
+  mutate(key = paste(V1, ".", V5, ".", V8, ".", V9))
+
+df2 <- df %>% 
+  group_by(key) %>% 
+  summarize(sum_amt_cents = sum(V7))
+
+df3 <- df2
+df3 <-
+cSplit(df3, "key", ".")
+
+deposits <- df3 %>% 
+  filter(as.integer(sum_amt_cents) > 0)
+
+deposits2 <- 
+  deposits %>%
+  group_by(key_1) %>%
+  arrange(key_1, desc(key_2)) %>% 
+  mutate(subsequent_deposit_date = dplyr::lag(key_2, n = 1, default = NA)) %>% 
+  arrange(key_1, key_2)
+
+deposits2$key_2 <- as.Date(deposits2$key_2)
+deposits2$subsequent_deposit_date <- as.Date(deposits2$subsequent_deposit_date)
+
+deposits2 <-
+  deposits2 %>% 
+  mutate(days_inbetween_deposits = as.integer(subsequent_deposit_date - key_2))
+
+deposits2$days_inbetween_deposits <- ifelse(is.na(deposits2$days_inbetween_deposits), 1000, deposits2$days_inbetween_deposits) 
+
+
+purchases <- df3 %>% 
+  filter(as.integer(sum_amt_cents) <= 0) %>% 
+  mutate(subsequent_deposit_date = NA, days_inbetween_deposits = NA)
+
+
+full_dataset <- rbind(data.frame(deposits2), data.frame(purchases)) %>% 
+  arrange(key_1, key_2, key_3)
+
+
+full_dataset$days_inbetween_deposits[1] <- ifelse(is.na(full_dataset$days_inbetween_deposits[1]),1,full_dataset$days_inbetween_deposits[1])
+
+full_dataset$days_inbetween_deposits = na.locf(full_dataset$days_inbetween_deposits)
+
+full_dataset <- full_dataset %>% 
+  select(-subsequent_deposit_date, -key_3) %>% 
+  filter((days_inbetween_deposits >= 28 & days_inbetween_deposits <= 31) | days_inbetween_deposits == 1000) %>% 
+  select(-days_inbetween_deposits)
+
+write.csv(full_dataset, file = "rsamplecode.csv")
