@@ -1,0 +1,91 @@
+import sys
+from datetime import datetime
+
+def parse_times(date_variable): 
+    try: 
+        return datetime.strptime(date_variable, '"%Y-%m-%d"') 
+    except ValueError: 
+        return datetime.strptime(date_variable, '%Y-%m-%d %H:%M:%S.%f')
+
+cur_account_id = '-'
+before_deposit = 0
+deposit_date = '-'
+days_since_deposit = 0
+
+
+month_count = 0
+hold_date = '-'
+hold_amount = 0 
+last_line = '-'
+lag_deposit_date = '-'
+
+cur_DBD = 0
+deposit_amount = 0
+perc_of_deposit = 0
+current_balance = 0
+count = 0
+c_day = 9999
+
+for line in sys.stdin:  
+	line = line.strip()
+	split = line.split(',')
+    
+	if len(split) == 6:
+		[obs_number, amount_cents, account_id, transaction_date, experiment, days_between_deposits] = line.split(',')
+    
+	if split[1] == '"sum_amt_cents"':
+		continue 
+    
+	else:
+		transaction_date_clean =  parse_times(transaction_date)
+		amount_cents = int(amount_cents)
+       
+
+	if account_id != cur_account_id:
+		cur_account_id = account_id
+		before_deposit = 0
+		month_count = 0 
+           
+            
+	if int(amount_cents) > 0:
+		before_deposit = 1
+		deposit_date = transaction_date_clean
+		current_balance = amount_cents
+		month_count = month_count + 1
+	else: 
+		current_balance = current_balance + amount_cents
+              
+        
+	if before_deposit == 1: 
+                                 
+		day_since_deposit =  transaction_date_clean.date() - deposit_date.date() 
+		day_since_deposit_clean = day_since_deposit.days
+		if int(amount_cents) > 0:
+			deposit_amount = current_balance
+		
+		perc_of_dep = current_balance / deposit_amount
+		if perc_of_dep < 0:
+			perc_of_dep = 0		
+		if day_since_deposit_clean > c_day + 1:
+			loop_range = day_since_deposit_clean - c_day
+			for i in range(1,loop_range):
+				old_line[5] = int(old_line[5])+1
+				old_line[5] = str(old_line[5])
+				print('\t'.join(old_line))
+		if day_since_deposit_clean == 0:
+			if c_day != 0:
+				if int(cur_DBD) < 32 and int(cur_DBD) > 27:
+					#print(day_since_deposit_clean,c_day,days_between_deposits)
+					loop_range = 31 - c_day
+					for i in range(1,loop_range):
+						old_line[5] = int(old_line[5])+1
+						old_line[5] = str(old_line[5])
+						print('\t'.join(old_line))
+
+
+
+		old_line = [str(amount_cents), account_id, transaction_date, experiment, str(deposit_date.date()), str(day_since_deposit_clean), str(current_balance), str(deposit_amount), str(perc_of_dep), days_between_deposits, str(month_count)]
+		print("\t".join([str(amount_cents), account_id, transaction_date, experiment, str(deposit_date.date()), str(day_since_deposit_clean), str(current_balance), str(deposit_amount), str(perc_of_dep), days_between_deposits, str(month_count)]))
+	
+		c_day = day_since_deposit_clean
+		cur_DBD = days_between_deposits        
