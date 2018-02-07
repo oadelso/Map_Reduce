@@ -1,0 +1,36 @@
+import sys
+from datetime import datetime
+
+old_line = []
+cur_account_id = "60618"
+n=0
+
+for line in sys.stdin:  
+	line = line.strip()
+	split = line.split('\t')
+    
+	if len(split) == 11:
+		[amount_cents, account_id, transaction_date, experiment, deposit_date, day_since_deposit_clean, current_balance, deposit_amount, perc_of_dep, days_between_deposit, month] = line.split('\t')
+	if n == 0:
+		old_line = line
+		n = n + 1
+	else:
+		
+		if day_since_deposit_clean == "0":
+			if old_line[5] == "0" and old_line[1] != account_id:
+				print(old_line)
+		
+			#if int(amount_cents) > 0 and cur_account_id != account_id:
+			#	print(old_line)
+			elif int(amount_cents) > 0: 
+				old_line = line			
+			else:
+				old_line = line
+		elif day_since_deposit_clean == "1":
+			print(old_line)
+			print(line)
+			old_line = line
+		else:
+			print(line)
+		
+		cur_account_id = account_id
